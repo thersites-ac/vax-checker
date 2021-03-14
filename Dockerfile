@@ -8,4 +8,4 @@ RUN pip3 install boto3
 
 COPY query_vax.py .
 
-ENTRYPOINT python3 query_vax.py 1
+ENTRYPOINT python3 query_vax.py
