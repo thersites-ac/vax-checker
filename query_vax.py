@@ -45,8 +45,9 @@ def check_cvs(topic, cvs_avail):
     headers = { 'referer': 'https://www.cvs.com/immunizations/covid-19-vaccine' }
     resp = requests.get('https://www.cvs.com/immunizations/covid-19-vaccine.vaccine-status.PA.json?vaccineinfo', headers = headers)
     if resp.status_code == 200:
-        entries = [ entry for entry in resp.json()['responsePayloadData']['data']['PA'] if not entry['status'] == 'Fully Booked' and entry['city'] not in cvs_avail ]
-        for entry in entries:
+        entries = [ entry for entry in resp.json()['responsePayloadData']['data']['PA'] if not entry['status'] == 'Fully Booked' ]
+        changed = [ entry for entry in entries if entry['city'] not in cvs_avail ]
+        for entry in changed:
             notify_cvs(topic, entry['city'])
         return { entry['city'] for entry in entries }
     else:
@@ -56,8 +57,9 @@ def check_cvs(topic, cvs_avail):
 def check_riteaid(topic, zipcode, riteaid_avail):
     resp = requests.get('https://www.riteaid.com/services/ext/v2/stores/getStores?address={}&radius=100'.format(zipcode))
     if resp.status_code == 200:
-        entries = [ entry for entry in resp.json()['Data']['stores'] if entry['storeNumber'] not in riteaid_avail ]
-        for entry in entries:
+        entries = resp.json()['Data']['stores']
+        changed = [ entry for entry in entries if entry['storeNumber'] not in riteaid_avail ]
+        for entry in changed:
             storeNumber = entry['storeNumber']
             url = 'https://www.riteaid.com/services/ext/v2/vaccine/checkSlots?storeNumber={}'.format(storeNumber)
             store_resp = requests.get(url)
