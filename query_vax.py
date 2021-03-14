@@ -28,6 +28,7 @@ def cvs(version):
         time.sleep(30)
 
 def riteaid(version):
+    zipcode = os.environ['ZIPCODE']
     sns = boto3.resource('sns')
     topic = sns.create_topic(Name = 'RiteAidVax-{}'.format(version))
     for phone in phones():
@@ -36,7 +37,7 @@ def riteaid(version):
         topic.subscribe(Protocol = 'email', Endpoint = email)
     while True:
         print('Checking RiteAid...')
-        check_riteaid(topic)
+        check_riteaid(topic, zipcode)
         time.sleep(30)
 
 
@@ -54,8 +55,8 @@ def check_cvs(topic):
                 notify_cvs(topic, city)
 
 # riteaid is straightforward
-def check_riteaid(topic):
-    resp = requests.get('https://www.riteaid.com/services/ext/v2/stores/getStores?address=19086&radius=100')
+def check_riteaid(topic, zipcode):
+    resp = requests.get('https://www.riteaid.com/services/ext/v2/stores/getStores?address={}&radius=100'.format(zipcode))
     stores = resp.json()['Data']['stores']
     for store in stores:
         url = 'https://www.riteaid.com/services/ext/v2/vaccine/checkSlots?storeNumber={}'.format(store['storeNumber'])
