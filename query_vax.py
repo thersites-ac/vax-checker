@@ -64,8 +64,7 @@ def check_riteaid(topic, zipcode, riteaid_avail):
             url = 'https://www.riteaid.com/services/ext/v2/vaccine/checkSlots?storeNumber={}'.format(storeNumber)
             store_resp = requests.get(url)
             if store_resp.status_code == 200 and store_resp.json()['Data']['slots']['1'] == True:
-                addr = entry['address']
-                notify_riteaid(topic, '{} in {}, {}'.format(addr, entry['city'], entry['zipcode']))
+                notify_riteaid(topic, '{} in {}, {}'.format(entry['address'], entry['city'], entry['zipcode']))
             elif not store_resp.status_code == 200:
                 logging.error('RiteAid checkSlots query for store {} failed with status code {}'.format(storeNumber, store_resp.status_code))
         return { entry['storeNumber'] for entry in entries }
