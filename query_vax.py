@@ -1,87 +1,93 @@
 import requests
 import boto3
 import time
-import os
+import env
+import logging
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 
 
 ### entrypoints
 
 def main():
-    version = os.environ['VERSION']
-    print('query_vax beginning...')
-    choice = os.environ['VACCINE_PROVIDER']
-    if choice == 'CVS':
-        cvs(version)
-    elif choice == 'RiteAid':
-        riteaid(version)
+    logging.info('query_vax beginning...')
+    if env.provider == 'CVS':
+        cvs(env.version)
+    elif env.provider == 'RiteAid':
+        riteaid(env.version)
 
 def cvs(version):
     sns = boto3.resource('sns')
     topic = sns.create_topic(Name = 'CvsVax-{}'.format(version))
-    for phone in phones():
-        topic.subscribe(Protocol = 'sms', Endpoint = phone)
+    cvs_avail = dict()
     for email in emails():
         topic.subscribe(Protocol = 'email', Endpoint = email)
     while True:
-        print('Checking CVS...')
-        check_cvs(topic)
+        logging.info('Checking CVS...')
+        cvs_avail = check_cvs(topic, cvs_avail)
         time.sleep(30)
 
 def riteaid(version):
-    zipcode = os.environ['ZIPCODE']
     sns = boto3.resource('sns')
     topic = sns.create_topic(Name = 'RiteAidVax-{}'.format(version))
-    for phone in phones():
-        topic.subscribe(Protocol = 'sms', Endpoint = phone)
+    riteaid_avail = dict()
     for email in emails():
         topic.subscribe(Protocol = 'email', Endpoint = email)
     while True:
-        print('Checking RiteAid...')
-        check_riteaid(topic, zipcode)
+        logging.info('Checking RiteAid...')
+        riteaid_avail = check_riteaid(topic, env.zipcode, riteaid_avail)
         time.sleep(30)
 
 
 ### vaccine check functions
 
-# cvs requires a referer header, otherwise we get 403'd
-def check_cvs(topic):
+def check_cvs(topic, cvs_avail):
     headers = { 'referer': 'https://www.cvs.com/immunizations/covid-19-vaccine' }
     resp = requests.get('https://www.cvs.com/immunizations/covid-19-vaccine.vaccine-status.PA.json?vaccineinfo', headers = headers)
     if resp.status_code == 200:
-        for entry in resp.json()['responsePayloadData']['data']['PA']:
-            if not entry['status'] == 'Fully Booked':
-                city = entry['city']
-                print('Notifying about', city)
-                notify_cvs(topic, city)
+        avail = { entry for entry in resp.json()['responsePayloadData']['data']['PA'] if not entry['status'] == 'Fully Booked' }
+        changed = avail.difference(cvs_avail)
+        for entry in changed:
+            city = entry['city']
+            notify_cvs(topic, city)
+        return avail
+    else:
+        logging.error('CVS query failed with status code {}'.format(resp.status_code))
+        return cvs_avail
 
-# riteaid is straightforward
-def check_riteaid(topic, zipcode):
+def check_riteaid(topic, zipcode, riteaid_avail):
     resp = requests.get('https://www.riteaid.com/services/ext/v2/stores/getStores?address={}&radius=100'.format(zipcode))
-    stores = resp.json()['Data']['stores']
-    for store in stores:
-        url = 'https://www.riteaid.com/services/ext/v2/vaccine/checkSlots?storeNumber={}'.format(store['storeNumber'])
-        resp = requests.get(url)
-        if resp.status_code == 200 and resp.json()['Data']['slots']['1'] == True:
-            addr = store['address']
-            print('Notifying about', addr)
-            notify_riteaid(topic, '{} in {}, {}'.format(addr, store['city'], store['zipcode']))
+    if resp.status_code == 200:
+        entries = [ entry for entry in resp.json()['Data']['stores'] if entry['storeNumber'] not in riteaid_avail ]
+        for entry in entries:
+            storeNumber = entry['storeNumber']
+            url = 'https://www.riteaid.com/services/ext/v2/vaccine/checkSlots?storeNumber={}'.format(storeNumber)
+            store_resp = requests.get(url)
+            if store_resp.status_code == 200 and store_resp.json()['Data']['slots']['1'] == True:
+                addr = entry['address']
+                notify_riteaid(topic, '{} in {}, {}'.format(addr, entry['city'], entry['zipcode']))
+            elif not store_resp.status_code == 200:
+                logging.error('RiteAid checkSlots query for store {} failed with status code {}'.format(storeNumber, store_resp.status_code))
+        return { entry['storeNumber'] for entry in entries }
+    else:
+        logging.error('RiteAid getStores query failed with status code {}'.format(resp.status_code))
+        return riteaid_avail
 
 
 
 ### utilities
 
 def notify_cvs(topic, location):
+    logging.info('Notifying about'.format(location))
     topic.publish(Message = 'CVS appointment available in {}: https://www.cvs.com/immunizations/covid-19-vaccine'.format(location))
 
 
 def notify_riteaid(topic, store):
+    logging.info('Notifying about {}'.format(store))
     topic.publish(Message = 'RiteAid appointment available in {}: https://www.riteaid.com/pharmacy/apt-scheduler'.format(store))
 
-def phones():
-    return os.environ['PHONE_NUMBERS'].split(',')
-
 def emails():
-    return os.environ['EMAILS'].split(',')
+    return env.emails.split(',')
 
 # acme in progress... it's more complex
 

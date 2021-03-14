@@ -7,5 +7,6 @@ RUN pip3 install requests
 RUN pip3 install boto3
 
 COPY query_vax.py .
+COPY env.py .
 
 ENTRYPOINT python3 query_vax.py
