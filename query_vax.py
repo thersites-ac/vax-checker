@@ -6,25 +6,36 @@ import os
 
 ### entrypoints
 
-def cvs():
+def main():
+    version = os.environ['VERSION']
+    print('query_vax beginning...')
+    choice = os.environ['VACCINE_PROVIDER']
+    if choice == 'CVS':
+        cvs(version)
+    elif choice == 'RiteAid':
+        riteaid(version)
+
+def cvs(version):
     sns = boto3.resource('sns')
-    topic = sns.create_topic(Name = 'CVS vaccine notifications')
+    topic = sns.create_topic(Name = 'CvsVax-{}'.format(version))
     for phone in phones():
         topic.subscribe(Protocol = 'sms', Endpoint = phone)
     for email in emails():
         topic.subscribe(Protocol = 'email', Endpoint = email)
     while True:
+        print('Checking CVS...')
         check_cvs()
         time.sleep(30)
 
-def riteaid():
+def riteaid(version):
     sns = boto3.resource('sns')
-    topic = sns.create_topic(Name = 'RiteAid vaccine notifications')
+    topic = sns.create_topic(Name = 'RiteAidVax-{}'.format(version))
     for phone in phones():
         topic.subscribe(Protocol = 'sms', Endpoint = phone)
     for email in emails():
         topic.subscribe(Protocol = 'email', Endpoint = email)
     while True:
+        print('Checking RiteAid...')
         check_riteaid()
         time.sleep(30)
 
@@ -38,7 +49,9 @@ def check_cvs():
     if resp.status_code == 200:
         for entry in resp.json()['responsePayloadData']['data']['PA']:
             if not entry['status'] == 'Fully Booked':
-                notify_cvs(entry['city'])
+                city = entry['city']
+                print('Notifying about', city)
+                notify_cvs(city)
 
 # riteaid is straightforward
 def check_riteaid():
@@ -48,7 +61,9 @@ def check_riteaid():
         url = 'https://www.riteaid.com/services/ext/v2/vaccine/checkSlots?storeNumber={}'.format(store['storeNumber'])
         resp = requests.get(url)
         if resp.status_code == 200 and resp.json()['Data']['slots']['1'] == True:
-            notify_riteaid('{} in {}, {}'.format(store['address'], store['city'], store['zipcode']))
+            addr = store['address']
+            print('Notifying about', addr)
+            notify_riteaid('{} in {}, {}'.format(addr, store['city'], store['zipcode']))
 
 
 
@@ -68,3 +83,10 @@ def emails():
     return os.environ['EMAILS'].split(',')
 
 # acme in progress... it's more complex
+
+
+
+
+### go
+
+main()
