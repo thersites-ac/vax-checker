@@ -4,7 +4,7 @@
 Checks for vaccine appointments for certain pharmacies in PA and notifies you when it finds one.
 
 ### How to use
-You will need to provision an EC2 instance. Then, see the `bootstrap.sh` script. This is more descriptive than useful, because the run scripts require the following (missing environment variables:
+You will need to provision an EC2 instance. Then, see the `bootstrap.sh` script. This is more descriptive than useful, because the run scripts require the following (missing) environment variables:
   * AWS programmatic access credentials
   * AWS region
   * comma-separated list of emails
