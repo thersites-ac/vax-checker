@@ -19,7 +19,7 @@ def main():
 def cvs(version):
     sns = boto3.resource('sns')
     topic = sns.create_topic(Name = 'CvsVax-{}'.format(version))
-    cvs_avail = dict()
+    cvs_avail = set()
     for email in emails():
         topic.subscribe(Protocol = 'email', Endpoint = email)
     while True:
@@ -30,7 +30,7 @@ def cvs(version):
 def riteaid(version):
     sns = boto3.resource('sns')
     topic = sns.create_topic(Name = 'RiteAidVax-{}'.format(version))
-    riteaid_avail = dict()
+    riteaid_avail = set()
     for email in emails():
         topic.subscribe(Protocol = 'email', Endpoint = email)
     while True:
@@ -45,11 +45,10 @@ def check_cvs(topic, cvs_avail):
     headers = { 'referer': 'https://www.cvs.com/immunizations/covid-19-vaccine' }
     resp = requests.get('https://www.cvs.com/immunizations/covid-19-vaccine.vaccine-status.PA.json?vaccineinfo', headers = headers)
     if resp.status_code == 200:
-        avail = { entry for entry in resp.json()['responsePayloadData']['data']['PA'] if not entry['status'] == 'Fully Booked' }
-        changed = avail.difference(cvs_avail)
-        for entry in changed:
+        entries = [ entry for entry in resp.json()['responsePayloadData']['data']['PA'] if not entry['status'] == 'Fully Booked' and entry['city'] not in cvs_avail ]
+        for entry in entries:
             notify_cvs(topic, entry['city'])
-        return avail
+        return { entry['city'] for entry in entries }
     else:
         logging.error('CVS query failed with status code {}'.format(resp.status_code))
         return cvs_avail
