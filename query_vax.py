@@ -48,8 +48,7 @@ def check_cvs(topic, cvs_avail):
         avail = { entry for entry in resp.json()['responsePayloadData']['data']['PA'] if not entry['status'] == 'Fully Booked' }
         changed = avail.difference(cvs_avail)
         for entry in changed:
-            city = entry['city']
-            notify_cvs(topic, city)
+            notify_cvs(topic, entry['city'])
         return avail
     else:
         logging.error('CVS query failed with status code {}'.format(resp.status_code))
