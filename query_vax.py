@@ -71,11 +71,11 @@ def check_riteaid(topic, zipcode):
 ### utilities
 
 def notify_cvs(topic, location):
-    topic.publish(Message = 'CVS appointment available in {}'.format(location))
+    topic.publish(Message = 'CVS appointment available in {}: https://www.cvs.com/immunizations/covid-19-vaccine'.format(location))
 
 
 def notify_riteaid(topic, store):
-    topic.publish(Message = 'RiteAid appointment available in {}'.format(store))
+    topic.publish(Message = 'RiteAid appointment available in {}: https://www.riteaid.com/pharmacy/apt-scheduler'.format(store))
 
 def phones():
     return os.environ['PHONE_NUMBERS'].split(',')
