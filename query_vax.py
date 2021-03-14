@@ -24,7 +24,7 @@ def cvs(version):
         topic.subscribe(Protocol = 'email', Endpoint = email)
     while True:
         print('Checking CVS...')
-        check_cvs()
+        check_cvs(topic)
         time.sleep(30)
 
 def riteaid(version):
@@ -36,14 +36,14 @@ def riteaid(version):
         topic.subscribe(Protocol = 'email', Endpoint = email)
     while True:
         print('Checking RiteAid...')
-        check_riteaid()
+        check_riteaid(topic)
         time.sleep(30)
 
 
 ### vaccine check functions
 
 # cvs requires a referer header, otherwise we get 403'd
-def check_cvs():
+def check_cvs(topic):
     headers = { 'referer': 'https://www.cvs.com/immunizations/covid-19-vaccine' }
     resp = requests.get('https://www.cvs.com/immunizations/covid-19-vaccine.vaccine-status.PA.json?vaccineinfo', headers = headers)
     if resp.status_code == 200:
@@ -51,10 +51,10 @@ def check_cvs():
             if not entry['status'] == 'Fully Booked':
                 city = entry['city']
                 print('Notifying about', city)
-                notify_cvs(city)
+                notify_cvs(topic, city)
 
 # riteaid is straightforward
-def check_riteaid():
+def check_riteaid(topic):
     resp = requests.get('https://www.riteaid.com/services/ext/v2/stores/getStores?address=19086&radius=100')
     stores = resp.json()['Data']['stores']
     for store in stores:
@@ -63,7 +63,7 @@ def check_riteaid():
         if resp.status_code == 200 and resp.json()['Data']['slots']['1'] == True:
             addr = store['address']
             print('Notifying about', addr)
-            notify_riteaid('{} in {}, {}'.format(addr, store['city'], store['zipcode']))
+            notify_riteaid(topic, '{} in {}, {}'.format(addr, store['city'], store['zipcode']))
 
 
 
