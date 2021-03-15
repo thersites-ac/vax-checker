@@ -23,4 +23,4 @@ Next, run
 
 The script `launch` creates Docker processes to query the pharmacy URLs every 30 seconds. If an appointment becomes available, you get an SNS notification. Deploying new changes consists of running `docker stop <container id>` followed by `./launch <CVS or RiteAid>`.
 
-Appointment check queries happen every 30". The result of each query are cached, so you don't get a notification every 30" that an appointment slot is open; instead you only get notified the first time it becomes available.
+Appointment check queries happen every 30 seconds. The result of each query is cached, so you don't get a notification every 30 seconds that an appointment slot is open; instead you only get notified the first time it becomes available.
