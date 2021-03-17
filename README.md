@@ -9,6 +9,8 @@ You will need to provision an EC2 instance. Ssh into the instance, then create a
   * EMAILS: a comma-separated list of emails (e.g. `dude@earthlink.net,walter@netscape.com,donny@aol.com`)
   * ZIPCODE
 
+Also attach an IAM role to the instance allowing it to use SNS.
+
 Next, run
 
     sudo su
