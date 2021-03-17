@@ -5,10 +5,9 @@ Checks for vaccine appointments for certain pharmacies in PA and notifies you wh
 
 ### How to use
 You will need to provision an EC2 instance. Ssh into the instance, then create a file called `.env` and fill it with `export KEY=VALUE` statements to populate the following environment variables:
-  * AWS programmatic access credentials
-  * AWS region
-  * comma-separated list of emails (e.g. `dude@earthlink.net,walter@netscape.com,donny@aol.com`)
-  * zip code
+  * AWS_DEFAULT_REGION
+  * EMAILS: a comma-separated list of emails (e.g. `dude@earthlink.net,walter@netscape.com,donny@aol.com`)
+  * ZIPCODE
 
 Next, run
 
